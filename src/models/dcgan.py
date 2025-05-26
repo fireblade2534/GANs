@@ -1,0 +1,122 @@
+from src.base.base_gan import BaseDiscriminator, BaseGenerator
+import torch.nn as nn
+import torch
+from typing import OrderedDict
+
+class DCGenerator(BaseGenerator):
+    def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48):
+        super(DCGenerator, self).__init__()
+
+        self.latent_dimension = latent_dimension
+        self.image_shape = image_shape
+        self.used_layers = used_layers
+        self.total_layers = total_layers
+        self.conv_dimension = conv_dimension
+
+        multiplier = 2 ** total_layers
+
+        temp_layers = [
+            nn.ConvTranspose2d(latent_dimension, conv_dimension * multiplier, kernel_size=4, stride=1,padding=0, bias=False),
+            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
+            nn.ReLU()
+        ]
+
+        for layer_index in range(used_layers):
+            multiplier = int(multiplier // 2)
+            temp_layers+=[
+                nn.ConvTranspose2d(conv_dimension * (multiplier * 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False),
+                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
+                nn.ReLU()
+            ]
+
+        temp_layers+=[
+            nn.ConvTranspose2d(conv_dimension * multiplier, self.image_shape[0], kernel_size=3, stride=1,padding=1, bias=False),
+            nn.Tanh()
+        ]
+
+        self.layers = nn.Sequential(*temp_layers)
+
+    def forward(self, latent_vector: torch.tensor):
+        return self.layers(latent_vector)
+    
+    def load_model_state(self, model_state):
+        new_state = OrderedDict()
+        kept_layers = 0
+
+        current_model_state = self.state_dict()
+        for X,Y in current_model_state.items():
+            if X in model_state.keys() and model_state[X].shape == Y.shape:
+                new_state[X] = model_state[X]
+                kept_layers = int(X.split(".")[1])
+            else:
+                new_state[X] = Y
+
+        total_layers = int(list(current_model_state.keys())[-1].split(".")[1])
+
+        self.load_state_dict(new_state)
+        return total_layers - kept_layers, total_layers
+    
+    def generate_latents(self, batch_size: int, device: str) -> torch.tensor:
+        return torch.randn((batch_size, self.latent_dimension, 1, 1), device=device, dtype=torch.float32)
+    
+    @torch.no_grad()
+    def requires_gradients(self, layer_numbers: int, state: bool):
+        for index in range(layer_numbers):
+            for param in self.layers[index].parameters():
+                param.requires_grad_(state)
+    
+class DCDiscriminator(BaseDiscriminator):
+    def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48):
+        super(DCDiscriminator, self).__init__()
+        self.image_shape = image_shape
+        self.conv_dimension = conv_dimension
+        self.used_layers = used_layers
+        self.total_layers = total_layers
+
+        multiplier = 1
+
+        temp_layers = [
+            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(self.image_shape[0], conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False))
+        ]
+
+        for layer_index in range(used_layers):
+            multiplier = multiplier * 2
+            temp_layers+=[
+                torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * int(multiplier // 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False)),
+                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
+                nn.LeakyReLU(0.2)
+            ]
+
+        temp_layers+=[
+            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * multiplier, 1, kernel_size=2, stride=1,padding=0, bias=False)),
+            nn.Sigmoid()
+        ]
+
+        self.layers = nn.Sequential(*temp_layers)
+
+    def forward(self, image_tensor: torch.tensor):
+        score = self.layers(image_tensor)
+        return score.view(image_tensor.shape[0],1)
+    
+    def load_model_state(self, model_state):
+        new_state = OrderedDict()
+        kept_layers = 0
+
+        current_model_state = self.state_dict()
+        for X,Y in current_model_state.items():
+            if X in model_state.keys() and model_state[X].shape == Y.shape:
+                new_state[X] = model_state[X]
+                kept_layers = int(X.split(".")[1])
+            else:
+                new_state[X] = Y
+
+        total_layers = int(list(current_model_state.keys())[-1].split(".")[1])
+
+        self.load_state_dict(new_state)
+        return total_layers - kept_layers, total_layers
+    
+    @torch.no_grad()
+    def requires_gradients(self, layer_numbers: int, state: bool):
+        for index in range(layer_numbers):
+            for param in self.layers[index].parameters():
+                param.requires_grad_(state)
