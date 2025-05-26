@@ -8,6 +8,7 @@ class AugmentationConfig:
 
 @dataclass
 class TrainingConfig:
+    seed: int = 42
     generator_learning_rate: float = 0.0002
     discriminator_learning_rate: float = 0.0004
     batch_size: int = 64

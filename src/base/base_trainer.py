@@ -199,7 +199,7 @@ class BaseTrainer(ABC):
         os.makedirs(os.path.join(save_path, "samples"), exist_ok=True)
         os.makedirs(os.path.join(save_path, "checkpoints"), exist_ok=True)
 
-        
+        torch.manual_seed(training_config.seed)        
 
         logger.Info("Saving training config")
         self._save_training_config(name, save_path, training_config, dataset, resume_path, override_resume_options)

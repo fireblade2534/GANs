@@ -12,9 +12,6 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True 
     device = "cuda"
 
-
-torch.manual_seed(42)
-
 img_size = 32
 img_channels = 3
 img_shape = (img_channels, img_size, img_size)
@@ -32,6 +29,7 @@ generator = DCGenerator(latent_dimension=256, used_layers=3, total_layers=7, ima
 discriminator = DCDiscriminator(used_layers=3, total_layers=7, image_shape=img_shape, conv_dimension=64)
 
 training_config = TrainingConfig(
+    seed=42,
     generator_learning_rate=0.00001,
     discriminator_learning_rate=0.00001,
     b1=0.5,

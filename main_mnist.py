@@ -12,9 +12,6 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True 
     device = "cuda"
 
-
-torch.manual_seed(42)
-
 img_size = 32
 img_channels = 3
 img_shape = (img_channels, img_size, img_size)
