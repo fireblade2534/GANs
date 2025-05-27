@@ -17,7 +17,7 @@ class DCGanTrainer(BaseTrainer):
         self.generator_scheduler = generator_scheduler
         self.discriminator_scheduler = discriminator_scheduler
         self.device = device
-        self.adversarial_loss = torch.nn.BCELoss()
+        self.adversarial_loss = torch.nn.BCEWithLogitsLoss()
 
     def _on_train_start(self):
         self.valid_base = torch.full((self.training_config.batch_size, 1), 0.9, device=self.device, requires_grad=False)
@@ -28,7 +28,7 @@ class DCGanTrainer(BaseTrainer):
 
         fake_images = self.generator(self.generator.generate_latents(self.training_config.batch_size, device=self.device))
 
-        generator_loss = self.adversarial_loss(self.discriminator(fake_images), valid)
+        generator_loss = self.adversarial_loss(self.discriminator(self.diff_augment.apply_agumentation(fake_images)), valid)
         generator_loss.backward()
 
         if zero_grad:
@@ -42,8 +42,11 @@ class DCGanTrainer(BaseTrainer):
         fake = torch.clamp(self.fake_base + 0.05 * torch.randn_like(self.fake_base, device=self.device), 0, 1)
         
         # Train the discriminator
-        real_loss = self.adversarial_loss(self.discriminator(real_images.to(self.device)), valid)
-        fake_loss = self.adversarial_loss(self.discriminator(fake_images), fake)
+        real_prediction = self.discriminator(self.diff_augment.apply_agumentation(real_images.to(self.device)))
+        real_loss = self.adversarial_loss(real_prediction, valid)
+
+        fake_prediction = self.discriminator(self.diff_augment.apply_agumentation(fake_images))
+        fake_loss = self.adversarial_loss(fake_prediction, fake)
 
         discriminator_loss = (real_loss + fake_loss) / 2
 
@@ -53,4 +56,4 @@ class DCGanTrainer(BaseTrainer):
             self.discriminator_optimizer.step()
             self.discriminator_optimizer.zero_grad(set_to_none=True)
 
-        return {"Discriminator Loss": discriminator_loss.item(), "Discriminator Real Loss": real_loss.item(), "Discriminator Fake Loss": fake_loss.item()}
+        return {"Discriminator Loss": discriminator_loss.item(), "Discriminator Real Loss": real_loss.item(), "Discriminator Fake Loss": fake_loss.item(), "Discriminator Real Prediction": real_prediction.mean().item(), "Discriminator Fake Prediction": fake_prediction.mean().item()}

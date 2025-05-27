@@ -25,7 +25,7 @@ image_transform = transforms.Compose(
 )
 trainset = torchvision.datasets.ImageFolder(root="~/Datasets/Images/FFHQ", transform=image_transform)
 
-generator = DCGenerator(latent_dimension=256, used_layers=3, total_layers=7, image_shape=img_shape, conv_dimension=64)
+generator = DCGenerator(latent_dimension=128, used_layers=3, total_layers=7, image_shape=img_shape, conv_dimension=64)
 discriminator = DCDiscriminator(used_layers=3, total_layers=7, image_shape=img_shape, conv_dimension=64)
 
 training_config = TrainingConfig(
@@ -33,7 +33,7 @@ training_config = TrainingConfig(
     generator_learning_rate=0.00001,
     discriminator_learning_rate=0.00001,
     b1=0.5,
-    b2=0.99,
+    b2=0.999,
     batch_size=32,
     epochs=200,
     sample_epochs=1,

@@ -15,6 +15,7 @@ import yaml
 from dataclasses import asdict
 import torchvision.transforms as transforms
 from src.logging import *
+from src.utilities.diff_agument import DiffAugment
 
 class BaseTrainer(ABC):
     @abstractmethod
@@ -69,7 +70,7 @@ class BaseTrainer(ABC):
             dataset_function = datasets.ImageFolder
             dataset_args["transform"] = cls._convert_dict_to_transforms(dataset_args["transform"])
 
-        if dataset_dict["type"] == "MNIST":
+        elif dataset_dict["type"] == "MNIST":
             dataset_function = datasets.MNIST
             dataset_args["transform"] = cls._convert_dict_to_transforms(dataset_args["transform"])
         
@@ -249,6 +250,8 @@ class BaseTrainer(ABC):
         self.generator.train(True)
         self.discriminator.train(True)
 
+        self.diff_augment = DiffAugment(self.training_config.augmentation_config, image_shape=self.generator.image_shape, device=self.device)
+
         if self.device == "cuda":
             self.generator = torch.compile(self.generator, mode="default")
             #self.discriminator = torch.compile(self.discriminator, mode="default")
@@ -315,10 +318,10 @@ class BaseTrainer(ABC):
                 generator_losses = self._train_generator_iteration(should_zero_grad)
                 
                 for key in generator_losses:
-                    if key in discriminator_epoch_loss_history:
-                        discriminator_epoch_loss_history[key] += generator_losses[key] / total_batches
+                    if key in generator_epoch_loss_history:
+                        generator_epoch_loss_history[key] += generator_losses[key] / total_batches
                     else:
-                        discriminator_epoch_loss_history[key] = generator_losses[key] / total_batches
+                        generator_epoch_loss_history[key] = generator_losses[key] / total_batches
 
             self.generator_scheduler.step()
             self.discriminator_scheduler.step()
@@ -329,7 +332,7 @@ class BaseTrainer(ABC):
             with torch.no_grad():
                 if epoch % training_config.sample_epochs == 0 or epoch == training_config.epochs:
                     sample_visualizations = self.generator(test_latents.detach()).cpu().permute(0, 2, 3, 1)
-                    #sample_visualizations = DiffAugment(real_images, training_config.augmentation_config, False).cpu().permute(0, 2, 3, 1)
+                    #sample_visualizations = self.diff_augment.apply_agumentation(real_images).cpu().permute(0, 2, 3, 1)
 
                     _, axes = plt.subplots(nrows=training_config.sample_grid_size, ncols=training_config.sample_grid_size, figsize=(training_config.sample_grid_size + 1, training_config.sample_grid_size + 1))
                     plt.suptitle(f"EPOCH : {epoch}")

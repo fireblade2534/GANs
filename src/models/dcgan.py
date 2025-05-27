@@ -1,4 +1,5 @@
 from src.base.base_gan import BaseDiscriminator, BaseGenerator
+from src.utilities.weights import init_weight
 import torch.nn as nn
 import torch
 from typing import OrderedDict
@@ -35,6 +36,8 @@ class DCGenerator(BaseGenerator):
         ]
 
         self.layers = nn.Sequential(*temp_layers)
+
+        self.apply(init_weight)
 
     def forward(self, latent_vector: torch.tensor):
         return self.layers(latent_vector)
@@ -76,7 +79,9 @@ class DCDiscriminator(BaseDiscriminator):
         multiplier = 1
 
         temp_layers = [
-            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(self.image_shape[0], conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False))
+            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(self.image_shape[0], conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
+            #nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
+            nn.LeakyReLU(0.2)
         ]
 
         for layer_index in range(used_layers):
@@ -89,10 +94,12 @@ class DCDiscriminator(BaseDiscriminator):
 
         temp_layers+=[
             torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * multiplier, 1, kernel_size=2, stride=1,padding=0, bias=False)),
-            nn.Sigmoid()
+            #nn.Sigmoid()
         ]
 
         self.layers = nn.Sequential(*temp_layers)
+
+        self.apply(init_weight)
 
     def forward(self, image_tensor: torch.tensor):
         score = self.layers(image_tensor)

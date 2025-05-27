@@ -21,7 +21,7 @@ if torch.cuda.is_available():
     torch.set_float32_matmul_precision("high")
     device = "cuda"
 
-checkpoint = BaseTrainer.load_checkpoint("training_runs/mnist_1/checkpoints/mnist_32x32_1_30_model.pt")
+checkpoint = BaseTrainer.load_checkpoint("training_runs/mnist_2/checkpoints/mnist_32x32_2_18_model.pt")
 
 generator = DCGenerator(latent_dimension=128, used_layers=3, total_layers=3, image_shape=(3,32,32))
 

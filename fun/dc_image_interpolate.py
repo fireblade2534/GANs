@@ -18,16 +18,16 @@ if torch.cuda.is_available():
     torch.set_float32_matmul_precision("high")
     device = "cuda"
 
-checkpoint = BaseTrainer.load_checkpoint("training_runs/mnist_1/checkpoints/mnist_32x32_1_30_model.pt")
+checkpoint = BaseTrainer.load_checkpoint("training_runs/mnist_3/checkpoints/mnist_32x32_3_50_model.pt")
 
-generator = DCGenerator(latent_dimension=128, image_shape=(3,32,32), used_layers=3, total_layers=3)
+generator = DCGenerator(latent_dimension=32, image_shape=(3,32,32), used_layers=3, total_layers=3, conv_dimension=64)
 
 generator.load_model_state(checkpoint.generator)
 
 generator.to(device)
 
 generator.eval()
-for i in range(1):
+for i in range(5):
     test_latents = generator.generate_latents(2, device=device)
 
     latent_start = test_latents[0]  # Shape: (64, 1, 1)
@@ -60,5 +60,5 @@ for i in range(1):
         axes[index].imshow(generated[index])
         axes[index].axis("off")
 
-    plt.savefig(f"sample_.png")#{random.randint(0,10000)}.png")
+    plt.savefig(f"/home/fireblade2534/Code/GANs/sample_{random.randint(0,10000)}.png")
     plt.close()
