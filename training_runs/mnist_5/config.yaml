@@ -18,7 +18,7 @@ training_config:
     translation: true
     cutout: true
   gradient_penalty_weight: 10
-  discriminator_repeats: 2
+  discriminator_repeats: 3
   gradient_accumulation_steps: 1
   num_labels: 10
 dataset:
@@ -51,5 +51,5 @@ dataset:
         - 0.5
         inplace: true
   type: MNIST
-resume_path: null
+resume_path: training_runs/mnist_5/checkpoints/mnist_32x32_5_4_model.pt
 override_resume_options: false

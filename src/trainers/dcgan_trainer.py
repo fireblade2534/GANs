@@ -27,7 +27,7 @@ class DCGanTrainer(BaseTrainer):
         valid = torch.clamp(self.valid_base + 0.1 * torch.randn_like(self.valid_base, device=self.device), 0, 1)
 
         fake_latent_vector = self.generator.generate_latents(self.training_config.batch_size, device=self.device)
-        fake_labels = torch.randint(0, self.training_config.num_labels, size=(self.training_config.batch_size,), device=self.device)
+        fake_labels = self.generator.generate_labels(self.training_config.batch_size, device=self.device)
 
         fake_images = self.generator(fake_latent_vector, fake_labels)
 

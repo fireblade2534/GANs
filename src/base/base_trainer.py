@@ -305,13 +305,13 @@ class BaseTrainer(ABC):
                     discriminator_steps_taken+=1
                     
                     fake_latent_vector = self.generator.generate_latents(self.training_config.batch_size, device=self.device)
-                    fake_labels = torch.randint(0, self.training_config.num_labels, size=(self.training_config.batch_size,), device=self.device)
+                    fake_labels = self.generator.generate_labels(self.training_config.batch_size, device=self.device)
 
                     fake_images = self.generator(fake_latent_vector, fake_labels)
 
                     should_zero_grad = discriminator_steps_taken % self.training_config.gradient_accumulation_steps == 0
 
-                    discriminator_losses = self._train_discriminator_iteration(real_images.to(device=self.device), fake_images.detach(), should_zero_grad, real_labels.to(device=self.device), fake_labels)
+                    discriminator_losses = self._train_discriminator_iteration(real_images.to(device=self.device), fake_images.detach(), should_zero_grad, real_labels.to(device=self.device), fake_labels.detach())
 
                     for key in discriminator_losses:
                         if key in discriminator_epoch_loss_history:

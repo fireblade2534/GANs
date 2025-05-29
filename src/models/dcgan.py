@@ -47,13 +47,20 @@ class DCGenerator(BaseGenerator):
 
         self.apply(init_weight)
 
+    def generate_embedding(self, labels: torch.tensor):
+        return self.label_embedding(labels).unsqueeze(-1).unsqueeze(-1)
+
     def forward(self, latent_vector: torch.tensor, labels: torch.tensor = None):
         final_latent_vector = latent_vector
         if self.conditional:
-            embedded_labels = self.label_embedding(labels).unsqueeze(-1).unsqueeze(-1)
+            embedded_labels = self.generate_embedding(labels)
 
             final_latent_vector = torch.cat([latent_vector, embedded_labels], dim=1)
 
+        return self.layers(final_latent_vector)
+    
+    def forward_without_embedding(self, latent_vector: torch.tensor, embedding_vector: torch.tensor):
+        final_latent_vector = torch.cat([latent_vector, embedding_vector], dim=1)
         return self.layers(final_latent_vector)
     
     def load_model_state(self, model_state):
@@ -77,6 +84,9 @@ class DCGenerator(BaseGenerator):
     def generate_latents(self, batch_size: int, device: str) -> torch.tensor:
         return torch.randn((batch_size, self.latent_dimension, 1, 1), device=device, dtype=torch.float32)
     
+    def generate_labels(self, batch_size: int, device: str) -> torch.tensor:
+        return torch.randint(0, self.num_labels, size=(batch_size,), device=device)
+
     @torch.no_grad()
     def requires_gradients(self, layer_numbers: int, state: bool):
         for index in range(layer_numbers):
