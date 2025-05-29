@@ -30,17 +30,17 @@ discriminator = DCDiscriminator(used_layers=3, total_layers=7, image_shape=img_s
 
 training_config = TrainingConfig(
     seed=42,
-    generator_learning_rate=0.00001,
-    discriminator_learning_rate=0.00001,
+    generator_learning_rate=0.00005,
+    discriminator_learning_rate=0.00005,
     b1=0.5,
     b2=0.999,
-    batch_size=32,
-    epochs=200,
+    batch_size=64,
+    epochs=50,
     sample_epochs=1,
     save_epochs=2,
-    discriminator_repeats=1,
+    discriminator_repeats=2,
     gradient_penalty_weight=10,
-    gradient_accumulation_steps=8,
+    gradient_accumulation_steps=1,
     stablization_epochs=2,
     num_data_workers=16,
     augmentation_config=AugmentationConfig(

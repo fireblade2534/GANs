@@ -2,11 +2,12 @@ from dataclasses import asdict
 import torch
 from src.logging import *
 from src.objects.training_config import AugmentationConfig
+import torch.nn.functional as Functional
 
 class DiffAugment:
 
     def __init__(self, config: AugmentationConfig, image_shape: torch.tensor, device: str):
-        augmentation_map = {"cutout": self.agumentation_cutout}
+        augmentation_map = {"cutout": self.agumentation_cutout, "translation": self.agumentation_translation}
 
         self.image_shape = image_shape
         self.device = device
@@ -32,12 +33,12 @@ class DiffAugment:
 
     @torch.compile
     def agumentation_cutout(self, image_tensor: torch.tensor, ratio: float = 0.5):
-        cutout_size = (int((image_tensor.size(3) * ratio) + 0.5), int((image_tensor.size(2) * ratio) + 0.5))
+        cutout_size = (int((self.image_shape[1] * ratio) + 0.5), int((self.image_shape[2] * ratio) + 0.5))
 
         mask_tensor = torch.ones_like(image_tensor)
 
-        y_start_index = torch.randint(0, image_tensor.size(3), size=(image_tensor.size(0),1,1,1), device=self.device)
-        x_start_index = torch.randint(0, image_tensor.size(2), size=(image_tensor.size(0),1,1,1), device=self.device)
+        y_start_index = torch.randint(0, self.image_shape[2] - cutout_size[1], size=(image_tensor.size(0),1,1,1), device=self.device)
+        x_start_index = torch.randint(0, self.image_shape[1] - cutout_size[0], size=(image_tensor.size(0),1,1,1), device=self.device)
 
         y_end_index = y_start_index + cutout_size[1]
         x_end_index = x_start_index + cutout_size[0]
@@ -49,3 +50,22 @@ class DiffAugment:
         mask_tensor[mask_broadcast] = 0
 
         return image_tensor * mask_tensor
+
+    def agumentation_translation(self, image_tensor: torch.tensor, ratio: int = 0.125):
+        max_transformation_size = min(int((image_tensor.size(2) * ratio) + 0.5), int((image_tensor.size(3) * ratio) + 0.5))
+
+        transformation = torch.randint(-max_transformation_size, max_transformation_size + 1, size=(image_tensor.size(0), 2), device=self.device)
+
+        theta = torch.zeros(image_tensor.size(0), 2, 3, device=self.device)
+        theta[:, 0, 0] = 1
+        theta[:, 1, 1] = 1
+        theta[:, 0, 2] = -(transformation[:,0].float() / self.image_shape[2]) * 2
+        theta[:, 1, 2] = -(transformation[:,1].float() / self.image_shape[1]) * 2
+
+        affine_transformation_grid = Functional.affine_grid(theta, image_tensor.size(), align_corners=False)
+
+        output_image_tensor = Functional.grid_sample(image_tensor + 1, affine_transformation_grid, mode='bilinear', 
+                           padding_mode='zeros', align_corners=False)
+    
+        return output_image_tensor - 1
+

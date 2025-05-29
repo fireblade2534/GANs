@@ -4,7 +4,7 @@ training_config:
   seed: 42
   generator_learning_rate: 9.0e-05
   discriminator_learning_rate: 9.0e-05
-  batch_size: 128
+  batch_size: 64
   epochs: 50
   b1: 0.5
   b2: 0.99
@@ -19,7 +19,7 @@ training_config:
     cutout: true
   gradient_penalty_weight: 10
   discriminator_repeats: 2
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 1
 dataset:
   args:
     root: /home/fireblade2534/Datasets/Images

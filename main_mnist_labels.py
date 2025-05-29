@@ -26,8 +26,8 @@ image_transform = transforms.Compose(
 )
 trainset = torchvision.datasets.MNIST(root="~/Datasets/Images", train=True, download=True, transform=image_transform)
 
-generator = DCGenerator(latent_dimension=16, used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=64)
-discriminator = DCDiscriminator(used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=64)
+generator = DCGenerator(latent_dimension=16, used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=64, num_labels=10)
+discriminator = DCDiscriminator(used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=64, num_labels=10)
 
 training_config = TrainingConfig(
     generator_learning_rate=0.00009,
@@ -43,6 +43,7 @@ training_config = TrainingConfig(
     gradient_accumulation_steps=1,
     stablization_epochs=2,
     num_data_workers=16,
+    num_labels=10,
     augmentation_config=AugmentationConfig(
         color=False,
         translation=True,#True,
@@ -59,4 +60,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = DCGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("mnist_32x32_4", "training_runs/mnist_4", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/mnist_1/checkpoints/mnist_32x32_1_4_model.pt")
+trainer.train("mnist_32x32_5", "training_runs/mnist_5", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/mnist_1/checkpoints/mnist_32x32_1_4_model.pt")

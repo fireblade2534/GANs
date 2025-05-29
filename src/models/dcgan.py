@@ -5,7 +5,7 @@ import torch
 from typing import OrderedDict
 
 class DCGenerator(BaseGenerator):
-    def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48):
+    def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
         super(DCGenerator, self).__init__()
 
         self.latent_dimension = latent_dimension
@@ -14,10 +14,18 @@ class DCGenerator(BaseGenerator):
         self.total_layers = total_layers
         self.conv_dimension = conv_dimension
 
+        self.num_labels = num_labels
+        self.conditional = num_labels > 0
+
+        input_dimension = self.latent_dimension
+        if self.conditional:
+            self.label_embedding = nn.Embedding(self.num_labels, latent_dimension)
+            input_dimension *= 2
+
         multiplier = 2 ** total_layers
 
         temp_layers = [
-            nn.ConvTranspose2d(latent_dimension, conv_dimension * multiplier, kernel_size=4, stride=1,padding=0, bias=False),
+            nn.ConvTranspose2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=1,padding=0, bias=False),
             nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
             nn.ReLU()
         ]
@@ -39,8 +47,14 @@ class DCGenerator(BaseGenerator):
 
         self.apply(init_weight)
 
-    def forward(self, latent_vector: torch.tensor):
-        return self.layers(latent_vector)
+    def forward(self, latent_vector: torch.tensor, labels: torch.tensor = None):
+        final_latent_vector = latent_vector
+        if self.conditional:
+            embedded_labels = self.label_embedding(labels).unsqueeze(-1).unsqueeze(-1)
+
+            final_latent_vector = torch.cat([latent_vector, embedded_labels], dim=1)
+
+        return self.layers(final_latent_vector)
     
     def load_model_state(self, model_state):
         new_state = OrderedDict()
@@ -50,11 +64,12 @@ class DCGenerator(BaseGenerator):
         for X,Y in current_model_state.items():
             if X in model_state.keys() and model_state[X].shape == Y.shape:
                 new_state[X] = model_state[X]
-                kept_layers = int(X.split(".")[1])
+                if "layers" in X:
+                    kept_layers = int(X.split(".")[1])
             else:
                 new_state[X] = Y
 
-        total_layers = int(list(current_model_state.keys())[-1].split(".")[1])
+        total_layers = int([l for l in current_model_state.keys() if "layers" in l][-1].split(".")[1])
 
         self.load_state_dict(new_state)
         return total_layers - kept_layers, total_layers
@@ -69,19 +84,27 @@ class DCGenerator(BaseGenerator):
                 param.requires_grad_(state)
     
 class DCDiscriminator(BaseDiscriminator):
-    def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48):
+    def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
         super(DCDiscriminator, self).__init__()
         self.image_shape = image_shape
         self.conv_dimension = conv_dimension
         self.used_layers = used_layers
         self.total_layers = total_layers
 
+        self.num_labels = num_labels
+        self.conditional = num_labels > 0
+
+        input_dimension = self.image_shape[0]
+        if self.conditional:
+            self.label_embedding = nn.Embedding(self.num_labels, self.image_shape[1] * self.image_shape[2])
+            input_dimension +=1
+
         multiplier = 1
 
         temp_layers = [
-            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(self.image_shape[0], conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
+            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
             #nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
-            nn.LeakyReLU(0.2)
+            nn.LeakyReLU(0.2),
         ]
 
         for layer_index in range(used_layers):
@@ -89,7 +112,7 @@ class DCDiscriminator(BaseDiscriminator):
             temp_layers+=[
                 torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * int(multiplier // 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False)),
                 nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
-                nn.LeakyReLU(0.2)
+                nn.LeakyReLU(0.2),
             ]
 
         temp_layers+=[
@@ -101,8 +124,14 @@ class DCDiscriminator(BaseDiscriminator):
 
         self.apply(init_weight)
 
-    def forward(self, image_tensor: torch.tensor):
-        score = self.layers(image_tensor)
+    def forward(self, image_tensor: torch.tensor, labels: torch.tensor = None):
+        final_image_tensor = image_tensor
+        if self.conditional:
+            embedded_labels = self.label_embedding(labels)
+            label_channel = embedded_labels.view(image_tensor.size(0), 1, self.image_shape[1], self.image_shape[2])
+            final_image_tensor = torch.cat([image_tensor,label_channel], dim=1)
+
+        score = self.layers(final_image_tensor)
         return score.view(image_tensor.shape[0],1)
     
     def load_model_state(self, model_state):
@@ -113,11 +142,12 @@ class DCDiscriminator(BaseDiscriminator):
         for X,Y in current_model_state.items():
             if X in model_state.keys() and model_state[X].shape == Y.shape:
                 new_state[X] = model_state[X]
-                kept_layers = int(X.split(".")[1])
+                if "layers" in X:
+                    kept_layers = int(X.split(".")[1])
             else:
                 new_state[X] = Y
 
-        total_layers = int(list(current_model_state.keys())[-1].split(".")[1])
+        total_layers = int([l for l in current_model_state.keys() if "layers" in l][-1].split(".")[1])
 
         self.load_state_dict(new_state)
         return total_layers - kept_layers, total_layers

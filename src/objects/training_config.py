@@ -24,3 +24,4 @@ class TrainingConfig:
     gradient_penalty_weight: int = 10
     discriminator_repeats: int = 3
     gradient_accumulation_steps: int = 2
+    num_labels: int = 0

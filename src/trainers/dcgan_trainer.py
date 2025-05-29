@@ -24,11 +24,14 @@ class DCGanTrainer(BaseTrainer):
         self.fake_base = torch.full((self.training_config.batch_size, 1), 0.1, device=self.device, requires_grad=False)
 
     def _train_generator_iteration(self, zero_grad: bool):
-        valid = torch.clamp(self.valid_base + 0.05 * torch.randn_like(self.valid_base, device=self.device), 0, 1)
+        valid = torch.clamp(self.valid_base + 0.1 * torch.randn_like(self.valid_base, device=self.device), 0, 1)
 
-        fake_images = self.generator(self.generator.generate_latents(self.training_config.batch_size, device=self.device))
+        fake_latent_vector = self.generator.generate_latents(self.training_config.batch_size, device=self.device)
+        fake_labels = torch.randint(0, self.training_config.num_labels, size=(self.training_config.batch_size,), device=self.device)
 
-        generator_loss = self.adversarial_loss(self.discriminator(self.diff_augment.apply_agumentation(fake_images)), valid)
+        fake_images = self.generator(fake_latent_vector, fake_labels)
+
+        generator_loss = self.adversarial_loss(self.discriminator(self.diff_augment.apply_agumentation(fake_images), fake_labels), valid)
         generator_loss.backward()
 
         if zero_grad:
@@ -37,15 +40,15 @@ class DCGanTrainer(BaseTrainer):
 
         return {"Generator Loss": generator_loss.item()}
 
-    def _train_discriminator_iteration(self, real_images: torch.tensor, fake_images: torch.tensor, zero_grad: bool):
-        valid = torch.clamp(self.valid_base + 0.05 * torch.randn_like(self.valid_base, device=self.device), 0, 1)
-        fake = torch.clamp(self.fake_base + 0.05 * torch.randn_like(self.fake_base, device=self.device), 0, 1)
+    def _train_discriminator_iteration(self, real_images: torch.tensor, fake_images: torch.tensor, zero_grad: bool, real_labels: torch.tensor = None, fake_labels: torch.tensor = None):
+        valid = torch.clamp(self.valid_base + 0.1 * torch.randn_like(self.valid_base, device=self.device), 0, 1)
+        fake = torch.clamp(self.fake_base + 0.1 * torch.randn_like(self.fake_base, device=self.device), 0, 1)
         
         # Train the discriminator
-        real_prediction = self.discriminator(self.diff_augment.apply_agumentation(real_images.to(self.device)))
+        real_prediction = self.discriminator(self.diff_augment.apply_agumentation(real_images.to(self.device)), real_labels)
         real_loss = self.adversarial_loss(real_prediction, valid)
 
-        fake_prediction = self.discriminator(self.diff_augment.apply_agumentation(fake_images))
+        fake_prediction = self.discriminator(self.diff_augment.apply_agumentation(fake_images), fake_labels)
         fake_loss = self.adversarial_loss(fake_prediction, fake)
 
         discriminator_loss = (real_loss + fake_loss) / 2
