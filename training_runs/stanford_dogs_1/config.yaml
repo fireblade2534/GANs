@@ -1,11 +1,11 @@
-name: mnist_32x32_5
-save_path: training_runs/mnist_5
+name: stanford_dogs_64x64_5
+save_path: training_runs/stanford_dogs
 training_config:
   seed: 42
   generator_learning_rate: 9.0e-05
   discriminator_learning_rate: 9.0e-05
   batch_size: 64
-  epochs: 50
+  epochs: 200
   b1: 0.5
   b2: 0.99
   sample_grid_size: 6
@@ -23,27 +23,23 @@ training_config:
     noise:
       enabled: true
       starting_noise: 0.1
-      ending_noise: 0
+      ending_noise: 0.001
       ending_epoch: 20
   gradient_penalty_weight: 10
   discriminator_repeats: 3
   gradient_accumulation_steps: 1
-  num_labels: 10
+  num_labels: 120
 dataset:
   args:
-    root: /home/fireblade2534/Datasets/Images
-    train: true
+    root: /home/fireblade2534/Datasets/Images/Stanford_Dogs
     transform:
-    - type: Greyscale
-      args:
-        num_output_channels: 3
     - type: ToTensor
       args: {}
     - type: Resize
       args:
         size:
-        - 32
-        - 32
+        - 64
+        - 64
         max_size: null
         antialias: true
         interpolation: bilinear
@@ -58,6 +54,6 @@ dataset:
         - 0.5
         - 0.5
         inplace: true
-  type: MNIST
-resume_path: null
+  type: ImageFolder
+resume_path: training_runs/stanford_dogs/checkpoints/stanford_dogs_64x64_5_124_model.pt
 override_resume_options: false

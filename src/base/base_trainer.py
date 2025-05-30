@@ -55,6 +55,18 @@ class BaseTrainer(ABC):
             output_dict["args"]["train"] = dataset.train
             output_dict["args"]["transform"] = cls._convert_transforms_to_dict(dataset.transform)
 
+        elif isinstance(dataset, datasets.FashionMNIST):
+            output_dict["type"] = "FashionMNIST"
+            output_dict["args"]["root"] = dataset.root
+            output_dict["args"]["train"] = dataset.train
+            output_dict["args"]["transform"] = cls._convert_transforms_to_dict(dataset.transform)
+
+        elif isinstance(dataset, datasets.CIFAR10):
+            output_dict["type"] = "CIFAR10"
+            output_dict["args"]["root"] = dataset.root
+            output_dict["args"]["train"] = dataset.train
+            output_dict["args"]["transform"] = cls._convert_transforms_to_dict(dataset.transform)
+
         else:
             logger.Critical(f"Failed to seralize dataset: {dataset}. Exiting")
             exit()
@@ -73,7 +85,15 @@ class BaseTrainer(ABC):
         elif dataset_dict["type"] == "MNIST":
             dataset_function = datasets.MNIST
             dataset_args["transform"] = cls._convert_dict_to_transforms(dataset_args["transform"])
-        
+
+        elif dataset_dict["type"] == "FashionMNIST":
+            dataset_function = datasets.FashionMNIST
+            dataset_args["transform"] = cls._convert_dict_to_transforms(dataset_args["transform"])
+
+        elif dataset_dict["type"] == "CIFAR10":
+            dataset_function = datasets.CIFAR10
+            dataset_args["transform"] = cls._convert_dict_to_transforms(dataset_args["transform"])
+
         else:
             logger.Critical(f"Failed to parse: {dataset_dict['type']}. Exiting")
             exit()
@@ -279,6 +299,7 @@ class BaseTrainer(ABC):
         logger.Info(f"  Generator Learning Rate: {self.generator_optimizer.param_groups[0]['lr']:.6f}")
         logger.Info(f"  Discriminator Learning Rate: {self.discriminator_optimizer.param_groups[0]['lr']:.6f}")
         logger.Info(f"  Batch Size: {training_config.batch_size}")
+        logger.Info(f"  Discriminator Repeats: {training_config.discriminator_repeats}")
         logger.Info(f"  Epochs: {training_config.epochs}")
         logger.Info(f"  Device: {self.device}")
         logger.Info(f"  Workers: {training_config.num_data_workers}")

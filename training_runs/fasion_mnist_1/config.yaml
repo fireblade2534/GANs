@@ -1,5 +1,5 @@
-name: stanford_dogs_64x64_5
-save_path: training_runs/stanford_dogs
+name: fasion_mnist_32x32_1
+save_path: training_runs/fasion_mnist_1
 training_config:
   seed: 42
   generator_learning_rate: 9.0e-05
@@ -28,18 +28,22 @@ training_config:
   gradient_penalty_weight: 10
   discriminator_repeats: 3
   gradient_accumulation_steps: 1
-  num_labels: 120
+  num_labels: 10
 dataset:
   args:
-    root: /home/fireblade2534/Datasets/Images/Stanford_Dogs
+    root: /home/fireblade2534/Datasets/Images
+    train: true
     transform:
+    - type: Greyscale
+      args:
+        num_output_channels: 3
     - type: ToTensor
       args: {}
     - type: Resize
       args:
         size:
-        - 64
-        - 64
+        - 32
+        - 32
         max_size: null
         antialias: true
         interpolation: bilinear
@@ -54,6 +58,6 @@ dataset:
         - 0.5
         - 0.5
         inplace: true
-  type: ImageFolder
-resume_path: training_runs/stanford_dogs/checkpoints/stanford_dogs_32x32_5_104_model.pt
-override_resume_options: true
+  type: MNIST
+resume_path: null
+override_resume_options: false

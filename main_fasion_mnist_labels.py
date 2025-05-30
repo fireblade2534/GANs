@@ -13,21 +13,22 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True 
     device = "cuda"
 
-img_size = 64
+img_size = 32
 img_channels = 3
 img_shape = (img_channels, img_size, img_size)
 
 image_transform = transforms.Compose(
     [  # transforms.Resize(img_size), # Resize is only for PIL Image. Not for numpy array
+        transforms.Grayscale(num_output_channels=3),
         transforms.ToTensor(),  # ToTensor() : np.array (H, W, C) -> tensor (C, H, W)
         transforms.Resize((img_size, img_size), antialias=True),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5], inplace=True),
     ]
 )
-trainset = torchvision.datasets.ImageFolder(root="~/Datasets/Images/Stanford_Dogs", transform=image_transform)
+trainset = torchvision.datasets.FashionMNIST(root="~/Datasets/Images", train=True, download=True, transform=image_transform)
 
-generator = DCGenerator(latent_dimension=64, used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=96, num_labels=120)
-discriminator = DCDiscriminator(used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=96, num_labels=120)
+generator = DCGenerator(latent_dimension=64, used_layers=3, total_layers=5, image_shape=img_shape, conv_dimension=96, num_labels=10)
+discriminator = DCDiscriminator(used_layers=3, total_layers=5, image_shape=img_shape, conv_dimension=96, num_labels=10)
 
 training_config = TrainingConfig(
     generator_learning_rate=0.00009,
@@ -43,7 +44,7 @@ training_config = TrainingConfig(
     gradient_accumulation_steps=1,
     stablization_epochs=2,
     num_data_workers=16,
-    num_labels=120,
+    num_labels=10,
     augmentation_config=AugmentationConfig(
         translation=AugmentationTranslationConfig(enabled=True),
         cutout=AugmentationCutoutConfig(enabled=True),
@@ -60,4 +61,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = DCGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("stanford_dogs_64x64_6", "training_runs/stanford_dogs_2", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/stanford_dogs/checkpoints/stanford_dogs_64x64_5_124_model.pt")
+trainer.train("fasion_mnist_32x32_1", "training_runs/fasion_mnist_1", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/stanford_dogs/checkpoints/stanford_dogs_64x64_5_124_model.pt")

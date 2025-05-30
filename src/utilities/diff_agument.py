@@ -1,8 +1,11 @@
 from dataclasses import asdict
+
 import torch
+import torch.nn.functional as Functional
+
 from src.logging import *
 from src.objects.training_config import AugmentationConfig
-import torch.nn.functional as Functional
+
 
 class DiffAugment:
 
@@ -26,7 +29,7 @@ class DiffAugment:
         self.channel_indexes = torch.arange(image_shape[0], device=device).view(1, -1, 1, 1)
 
     @torch.compile
-    def apply_agumentation(self, image_tensor: torch.tensor, epoch: int):
+    def apply_augmentation(self, image_tensor: torch.tensor, epoch: int):
 
         for augmentation in self.augmentations:
             image_tensor = augmentation(image_tensor, epoch)

@@ -1,7 +1,7 @@
 from src.trainers.dcgan_trainer import DCGanTrainer
 from src.models.dcgan import DCGenerator, DCDiscriminator
 
-from src.objects.training_config import AugmentationConfig, TrainingConfig
+from src.objects.training_config import AugmentationConfig, AugmentationCutoutConfig, AugmentationNoiseConfig, AugmentationTranslationConfig, TrainingConfig
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -45,9 +45,9 @@ training_config = TrainingConfig(
     num_data_workers=16,
     num_labels=10,
     augmentation_config=AugmentationConfig(
-        color=False,
-        translation=True,#True,
-        cutout=True,#True
+        translation=AugmentationTranslationConfig(enabled=True),
+        cutout=AugmentationCutoutConfig(enabled=True),
+        noise=AugmentationNoiseConfig(enabled=True)
     )
 )
 

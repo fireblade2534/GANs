@@ -1,12 +1,11 @@
-from src.base.base_trainer import BaseTrainer
-from src.models.dcgan import DCGenerator, DCDiscriminator
-from torch.utils.data import Dataset, DataLoader
+import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
-from src.objects.training_config import TrainingConfig
-import os
-import torch
+
+from src.base.base_trainer import BaseTrainer
 from src.logging import *
+from src.models.dcgan import DCDiscriminator, DCGenerator
+
 
 class DCGanTrainer(BaseTrainer):
     def __init__(self, generator: DCGenerator, discriminator: DCDiscriminator, generator_optimizer: Optimizer, discriminator_optimizer: Optimizer, generator_scheduler: LRScheduler, discriminator_scheduler: LRScheduler, device: str = "cpu"):
@@ -31,7 +30,7 @@ class DCGanTrainer(BaseTrainer):
 
         fake_images = self.generator(fake_latent_vector, fake_labels)
 
-        generator_loss = self.adversarial_loss(self.discriminator(self.diff_augment.apply_agumentation(fake_images, epoch), fake_labels), valid)
+        generator_loss = self.adversarial_loss(self.discriminator(self.diff_augment.apply_augmentation(fake_images, epoch), fake_labels), valid)
         generator_loss.backward()
 
         if zero_grad:
@@ -45,10 +44,10 @@ class DCGanTrainer(BaseTrainer):
         fake = torch.clamp(self.fake_base + 0.1 * torch.randn_like(self.fake_base, device=self.device), 0, 1)
         
         # Train the discriminator
-        real_prediction = self.discriminator(self.diff_augment.apply_agumentation(real_images.to(self.device), epoch), real_labels)
+        real_prediction = self.discriminator(self.diff_augment.apply_augmentation(real_images.to(self.device), epoch), real_labels)
         real_loss = self.adversarial_loss(real_prediction, valid)
 
-        fake_prediction = self.discriminator(self.diff_augment.apply_agumentation(fake_images, epoch), fake_labels)
+        fake_prediction = self.discriminator(self.diff_augment.apply_augmentation(fake_images, epoch), fake_labels)
         fake_loss = self.adversarial_loss(fake_prediction, fake)
 
         discriminator_loss = (real_loss + fake_loss) / 2

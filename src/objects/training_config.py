@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 class AugmentationNoiseConfig:
     enabled: bool = False
     starting_noise: float = 0.1
-    ending_noise: float = 0.001
+    ending_noise: float = 0
     ending_epoch: int = 20
 
 @dataclass
