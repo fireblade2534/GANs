@@ -1,10 +1,27 @@
 from dataclasses import dataclass, field
 
 @dataclass
+class AugmentationNoiseConfig:
+    enabled: bool = False
+    starting_noise: float = 0.1
+    ending_noise: float = 0.001
+    ending_epoch: int = 20
+
+@dataclass
+class AugmentationCutoutConfig:
+    enabled: bool = False
+    ratio: float = 0.5
+
+@dataclass
+class AugmentationTranslationConfig:
+    enabled: bool = False
+    ratio: float = 0.125
+
+@dataclass
 class AugmentationConfig:
-    color: bool = False
-    translation: bool = False
-    cutout: bool = False
+    translation: AugmentationTranslationConfig = field(default_factory=AugmentationTranslationConfig)
+    cutout: AugmentationCutoutConfig = field(default_factory=AugmentationCutoutConfig)
+    noise: AugmentationNoiseConfig = field(default_factory=AugmentationNoiseConfig)
 
 @dataclass
 class TrainingConfig:

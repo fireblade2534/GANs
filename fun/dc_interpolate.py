@@ -54,4 +54,4 @@ for i in range(10):
         print(raw_generated.shape)
         generated = ((raw_generated + 1) * 128).to(torch.uint8)
     #exit()
-    imageio.mimwrite('Test.mp4', generated.numpy())
+    imageio.mimwrite('Test.gif', generated.numpy())

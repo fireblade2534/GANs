@@ -1,7 +1,8 @@
+from matplotlib.pyplot import cla
 from src.trainers.dcgan_trainer import DCGanTrainer
 from src.models.dcgan import DCGenerator, DCDiscriminator
 
-from src.objects.training_config import AugmentationConfig, TrainingConfig
+from src.objects.training_config import AugmentationConfig, AugmentationCutoutConfig, AugmentationNoiseConfig, AugmentationTranslationConfig, TrainingConfig
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -12,7 +13,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True 
     device = "cuda"
 
-img_size = 32
+img_size = 64
 img_channels = 3
 img_shape = (img_channels, img_size, img_size)
 
@@ -23,30 +24,30 @@ image_transform = transforms.Compose(
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5], inplace=True),
     ]
 )
-trainset = torchvision.datasets.ImageFolder(root="~/Datasets/Images/FFHQ", transform=image_transform)
+trainset = torchvision.datasets.ImageFolder(root="~/Datasets/Images/Stanford_Dogs", transform=image_transform)
 
-generator = DCGenerator(latent_dimension=128, used_layers=3, total_layers=7, image_shape=img_shape, conv_dimension=64)
-discriminator = DCDiscriminator(used_layers=3, total_layers=7, image_shape=img_shape, conv_dimension=64)
+generator = DCGenerator(latent_dimension=64, used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=96, num_labels=120)
+discriminator = DCDiscriminator(used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=96, num_labels=120)
 
 training_config = TrainingConfig(
-    seed=42,
-    generator_learning_rate=0.00005,
-    discriminator_learning_rate=0.00005,
+    generator_learning_rate=0.00009,
+    discriminator_learning_rate=0.00009,
     b1=0.5,
-    b2=0.999,
+    b2=0.99,
     batch_size=64,
-    epochs=50,
-    sample_epochs=1,
+    epochs=200,
+    sample_epochs=2,
     save_epochs=2,
-    discriminator_repeats=1,
+    discriminator_repeats=3,
     gradient_penalty_weight=10,
     gradient_accumulation_steps=1,
     stablization_epochs=2,
     num_data_workers=16,
+    num_labels=120,
     augmentation_config=AugmentationConfig(
-        color=False,
-        translation=True,#True,
-        cutout=True,#True
+        translation=AugmentationTranslationConfig(enabled=True),
+        cutout=AugmentationCutoutConfig(enabled=True),
+        noise=AugmentationNoiseConfig(enabled=True)
     )
 )
 
@@ -59,4 +60,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = DCGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("ffhq_32x32_1", "training_runs/ffhq_1", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/mnist_1/checkpoints/mnist_32x32_1_4_model.pt")
+trainer.train("stanford_dogs_64x64_5", "training_runs/stanford_dogs", training_config, trainset, override_resume_options=True, resume_path="training_runs/stanford_dogs/checkpoints/stanford_dogs_32x32_5_104_model.pt")

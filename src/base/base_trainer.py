@@ -29,11 +29,11 @@ class BaseTrainer(ABC):
         self.device = device
 
     @abstractmethod
-    def _train_generator_iteration(self, zero_grad: bool):
+    def _train_generator_iteration(self, epoch: int, zero_grad: bool):
         raise NotImplementedError("Subclasses must implement the _train_generator_iteration method")
     
     @abstractmethod
-    def _train_discriminator_iteration(self, real_images: torch.tensor, fake_images: torch.tensor, zero_grad: bool, real_labels: torch.tensor = None, fake_labels: torch.tensor = None):
+    def _train_discriminator_iteration(self, real_images: torch.tensor, fake_images: torch.tensor, zero_grad: bool, epoch: int, real_labels: torch.tensor = None, fake_labels: torch.tensor = None):
         raise NotImplementedError("Subclasses must implement the _train_discriminator_iteration method")
 
     @abstractmethod
@@ -267,7 +267,10 @@ class BaseTrainer(ABC):
         test_images = training_config.sample_grid_size * training_config.sample_grid_size
 
         test_latents = self.generator.generate_latents((test_images), device=self.device)
-        test_labels = torch.arange(0, self.training_config.num_labels, device=self.device).repeat(test_images // self.training_config.num_labels + 1)[:test_images]
+        if self.conditional:
+            test_labels = torch.arange(0, self.training_config.num_labels, device=self.device).repeat(test_images // self.training_config.num_labels + 1)[:test_images].detach()
+        else:
+            test_labels = None
 
         self._on_train_start()
 
@@ -305,13 +308,13 @@ class BaseTrainer(ABC):
                     discriminator_steps_taken+=1
                     
                     fake_latent_vector = self.generator.generate_latents(self.training_config.batch_size, device=self.device)
-                    fake_labels = self.generator.generate_labels(self.training_config.batch_size, device=self.device)
+                    fake_labels = self.generator.generate_labels(self.training_config.batch_size, device=self.device).detach() if self.conditional else None
 
                     fake_images = self.generator(fake_latent_vector, fake_labels)
 
                     should_zero_grad = discriminator_steps_taken % self.training_config.gradient_accumulation_steps == 0
 
-                    discriminator_losses = self._train_discriminator_iteration(real_images.to(device=self.device), fake_images.detach(), should_zero_grad, real_labels.to(device=self.device), fake_labels.detach())
+                    discriminator_losses = self._train_discriminator_iteration(real_images.to(device=self.device), fake_images.detach(), should_zero_grad, epoch, real_labels.to(device=self.device), fake_labels)
 
                     for key in discriminator_losses:
                         if key in discriminator_epoch_loss_history:
@@ -323,7 +326,7 @@ class BaseTrainer(ABC):
                     
                 should_zero_grad = generator_steps_taken % training_config.gradient_accumulation_steps == 0
 
-                generator_losses = self._train_generator_iteration(should_zero_grad)
+                generator_losses = self._train_generator_iteration(epoch, should_zero_grad)
                 
                 for key in generator_losses:
                     if key in generator_epoch_loss_history:
@@ -339,7 +342,7 @@ class BaseTrainer(ABC):
 
             with torch.no_grad():
                 if epoch % training_config.sample_epochs == 0 or epoch == training_config.epochs:
-                    sample_visualizations = self.generator(test_latents.detach(), test_labels.detach()).cpu().permute(0, 2, 3, 1)
+                    sample_visualizations = self.generator(test_latents.detach(), test_labels).cpu().permute(0, 2, 3, 1)
                     #sample_visualizations = self.diff_augment.apply_agumentation(real_images.cuda()).cpu().permute(0, 2, 3, 1)
 
                     _, axes = plt.subplots(nrows=training_config.sample_grid_size, ncols=training_config.sample_grid_size, figsize=(training_config.sample_grid_size + 1, training_config.sample_grid_size + 1))

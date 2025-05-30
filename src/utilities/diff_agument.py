@@ -7,14 +7,15 @@ import torch.nn.functional as Functional
 class DiffAugment:
 
     def __init__(self, config: AugmentationConfig, image_shape: torch.tensor, device: str):
-        augmentation_map = {"cutout": self.agumentation_cutout, "translation": self.agumentation_translation}
+        augmentation_map = {"cutout": self.agumentation_cutout, "translation": self.agumentation_translation, "noise": self.augment_noise}
 
         self.image_shape = image_shape
         self.device = device
         self.augmentations = []
+        self.config = config
 
         for augmentation, state in asdict(config).items():
-            if state:
+            if state["enabled"]:
                 if augmentation in augmentation_map:
                     self.augmentations.append(augmentation_map[augmentation])
                 else:
@@ -25,14 +26,16 @@ class DiffAugment:
         self.channel_indexes = torch.arange(image_shape[0], device=device).view(1, -1, 1, 1)
 
     @torch.compile
-    def apply_agumentation(self, image_tensor: torch.tensor):
+    def apply_agumentation(self, image_tensor: torch.tensor, epoch: int):
 
         for augmentation in self.augmentations:
-            image_tensor = augmentation(image_tensor)
+            image_tensor = augmentation(image_tensor, epoch)
         return image_tensor
 
     @torch.compile
-    def agumentation_cutout(self, image_tensor: torch.tensor, ratio: float = 0.5):
+    def agumentation_cutout(self, image_tensor: torch.tensor, epoch: int):
+        ratio = self.config.cutout.ratio
+
         cutout_size = (int((self.image_shape[1] * ratio) + 0.5), int((self.image_shape[2] * ratio) + 0.5))
 
         mask_tensor = torch.ones_like(image_tensor)
@@ -51,7 +54,10 @@ class DiffAugment:
 
         return image_tensor * mask_tensor
 
-    def agumentation_translation(self, image_tensor: torch.tensor, ratio: int = 0.125):
+    @torch.compile
+    def agumentation_translation(self, image_tensor: torch.tensor, epoch: int):
+        ratio = self.config.translation.ratio
+
         max_transformation_size = min(int((image_tensor.size(2) * ratio) + 0.5), int((image_tensor.size(3) * ratio) + 0.5))
 
         transformation = torch.randint(-max_transformation_size, max_transformation_size + 1, size=(image_tensor.size(0), 2), device=self.device)
@@ -69,3 +75,15 @@ class DiffAugment:
     
         return output_image_tensor - 1
 
+    @torch.compile
+    def augment_noise(self, image_tensor: torch.tensor, epoch: int):
+        starting_noise = self.config.noise.starting_noise
+        ending_noise = self.config.noise.ending_noise
+        ending_epoch = self.config.noise.ending_epoch
+
+        epoch_percent = min(epoch / ending_epoch, 1)
+        noise_magnitude = (starting_noise * (1 - epoch_percent)) + (ending_noise * epoch_percent)
+
+        noise = torch.randn_like(image_tensor, device=self.device) * noise_magnitude
+
+        return torch.clamp(image_tensor + noise, -1, 1)
