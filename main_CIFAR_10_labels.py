@@ -27,8 +27,8 @@ image_transform = transforms.Compose(
 )
 trainset = torchvision.datasets.CIFAR10(root="~/Datasets/Images", train=True, download=True, transform=image_transform)
 
-generator = DCGenerator(latent_dimension=64, used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=96, num_labels=10)
-discriminator = DCDiscriminator(used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=96, num_labels=10)
+generator = DCGenerator(latent_dimension=96, used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=192, num_labels=10)
+discriminator = DCDiscriminator(used_layers=3, total_layers=3, image_shape=img_shape, conv_dimension=192, num_labels=10)
 
 training_config = TrainingConfig(
     generator_learning_rate=0.00009,
@@ -36,10 +36,10 @@ training_config = TrainingConfig(
     b1=0.5,
     b2=0.99,
     batch_size=64,
-    epochs=200,
+    epochs=300,
     sample_epochs=2,
     save_epochs=2,
-    discriminator_repeats=3,
+    discriminator_repeats=5,
     gradient_penalty_weight=10,
     gradient_accumulation_steps=1,
     stablization_epochs=2,
@@ -48,7 +48,7 @@ training_config = TrainingConfig(
     augmentation_config=AugmentationConfig(
         translation=AugmentationTranslationConfig(enabled=True),
         cutout=AugmentationCutoutConfig(enabled=True),
-        noise=AugmentationNoiseConfig(enabled=True)
+        noise=AugmentationNoiseConfig(enabled=False)
     )
 )
 
@@ -61,4 +61,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = DCGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("cifar_32x32_3", "training_runs/cifar_3", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/stanford_dogs/checkpoints/stanford_dogs_64x64_5_124_model.pt")
+trainer.train("cifar_32x32_3", "training_runs/cifar_3", training_config, trainset, override_resume_options=False, resume_path="training_runs/cifar_3/checkpoints/cifar_32x32_3_138_model.pt")
