@@ -1,16 +1,16 @@
-name: cifar_32x32_3
-save_path: training_runs/cifar_3
+name: stanford_dogs_64x64_6
+save_path: training_runs/stanford_dogs_2
 training_config:
   seed: 42
   generator_learning_rate: 9.0e-05
   discriminator_learning_rate: 9.0e-05
   batch_size: 64
-  epochs: 300
+  epochs: 200
   b1: 0.5
   b2: 0.99
   sample_grid_size: 6
   sample_epochs: 2
-  save_epochs: 2
+  save_epochs: 4
   num_data_workers: 16
   stablization_epochs: 2
   augmentation_config:
@@ -26,21 +26,20 @@ training_config:
       ending_noise: 0
       ending_epoch: 20
   gradient_penalty_weight: 10
-  discriminator_repeats: 5
+  discriminator_repeats: 4
   gradient_accumulation_steps: 1
-  num_labels: 10
+  num_labels: 120
 dataset:
   args:
-    root: /home/fireblade2534/Datasets/Images
-    train: true
+    root: /home/fireblade2534/Datasets/Images/Stanford_Dogs
     transform:
     - type: ToTensor
       args: {}
     - type: Resize
       args:
         size:
-        - 32
-        - 32
+        - 64
+        - 64
         max_size: null
         antialias: true
         interpolation: bilinear
@@ -55,6 +54,6 @@ dataset:
         - 0.5
         - 0.5
         inplace: true
-  type: CIFAR10
+  type: ImageFolder
 resume_path: null
 override_resume_options: false

@@ -26,8 +26,8 @@ image_transform = transforms.Compose(
 )
 trainset = torchvision.datasets.ImageFolder(root="~/Datasets/Images/Stanford_Dogs", transform=image_transform)
 
-generator = DCGenerator(latent_dimension=128, used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=96, num_labels=120)
-discriminator = DCDiscriminator(used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=96, num_labels=120)
+generator = DCGenerator(latent_dimension=128, used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=128, num_labels=120)
+discriminator = DCDiscriminator(used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=128, num_labels=120)
 
 training_config = TrainingConfig(
     generator_learning_rate=0.00009,
@@ -60,4 +60,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = DCGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("stanford_dogs_64x64_6", "training_runs/stanford_dogs_2", training_config, trainset, override_resume_options=False, resume_path="training_runs/stanford_dogs_2/checkpoints/stanford_dogs_64x64_6_32_model.pt")
+trainer.train("stanford_dogs_64x64_6", "training_runs/stanford_dogs_2", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/stanford_dogs_2/checkpoints/stanford_dogs_64x64_6_32_model.pt")

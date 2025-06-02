@@ -1,5 +1,5 @@
-name: cifar_32x32_3
-save_path: training_runs/cifar_3
+name: cifar_32x32_4
+save_path: training_runs/cifar_4
 training_config:
   seed: 42
   generator_learning_rate: 9.0e-05
@@ -21,7 +21,7 @@ training_config:
       enabled: true
       ratio: 0.5
     noise:
-      enabled: false
+      enabled: true
       starting_noise: 0.1
       ending_noise: 0
       ending_epoch: 20

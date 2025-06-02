@@ -33,7 +33,7 @@ class DCGenerator(BaseGenerator):
         for layer_index in range(used_layers):
             multiplier = int(multiplier // 2)
             temp_layers+=[
-                nn.ConvTranspose2d(conv_dimension * (multiplier * 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False),
+                nn.ConvTranspose2d(conv_dimension * (multiplier * 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=True),
                 nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
                 nn.ReLU()
             ]
@@ -113,7 +113,7 @@ class DCDiscriminator(BaseDiscriminator):
 
         temp_layers = [
             torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
-            #nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
+            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
             nn.LeakyReLU(0.2),
         ]
 
