@@ -3,6 +3,7 @@ from src.utilities.weights import init_weight
 import torch.nn as nn
 import torch
 from typing import OrderedDict
+import math
 
 class DCGenerator(BaseGenerator):
     def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
@@ -26,7 +27,7 @@ class DCGenerator(BaseGenerator):
 
         temp_layers = [
             nn.ConvTranspose2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=1,padding=0, bias=False),
-            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
+            nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 4)), conv_dimension * multiplier, affine=True),
             nn.ReLU()
         ]
 
@@ -34,7 +35,7 @@ class DCGenerator(BaseGenerator):
             multiplier = int(multiplier // 2)
             temp_layers+=[
                 nn.ConvTranspose2d(conv_dimension * (multiplier * 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=True),
-                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
+                nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 4)), conv_dimension * multiplier, affine=True),
                 nn.ReLU()
             ]
 
@@ -113,7 +114,7 @@ class DCDiscriminator(BaseDiscriminator):
 
         temp_layers = [
             torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
-            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
+            nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 4)), conv_dimension * multiplier, affine = True),
             nn.LeakyReLU(0.2),
         ]
 
@@ -121,7 +122,7 @@ class DCDiscriminator(BaseDiscriminator):
             multiplier = multiplier * 2
             temp_layers+=[
                 torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * int(multiplier // 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False)),
-                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine=True),
+                nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 4)), conv_dimension * multiplier, affine=True),
                 nn.LeakyReLU(0.2),
             ]
 
