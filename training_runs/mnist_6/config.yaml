@@ -1,12 +1,12 @@
-name: cifar_32x32_4
-save_path: training_runs/cifar_4
+name: mnist_32x32_6
+save_path: training_runs/mnist_6
 training_config:
   seed: 42
   generator_learning_rate: 9.0e-05
   discriminator_learning_rate: 9.0e-05
   batch_size: 64
-  epochs: 300
-  b1: 0.5
+  epochs: 50
+  b1: 0.0
   b2: 0.99
   sample_grid_size: 6
   sample_epochs: 2
@@ -34,6 +34,9 @@ dataset:
     root: /home/fireblade2534/Datasets/Images
     train: true
     transform:
+    - type: Greyscale
+      args:
+        num_output_channels: 3
     - type: ToTensor
       args: {}
     - type: Resize
@@ -55,6 +58,6 @@ dataset:
         - 0.5
         - 0.5
         inplace: true
-  type: CIFAR10
-resume_path: training_runs/cifar_4/checkpoints/cifar_32x32_4_8_model.pt
+  type: MNIST
+resume_path: null
 override_resume_options: false

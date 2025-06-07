@@ -61,4 +61,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = DCGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("cifar_32x32_4", "training_runs/cifar_4", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/cifar_3/checkpoints/cifar_32x32_3_138_model.pt")
+trainer.train("cifar_32x32_4", "training_runs/cifar_4", training_config, trainset, override_resume_options=False, resume_path="training_runs/cifar_4/checkpoints/cifar_32x32_4_8_model.pt")

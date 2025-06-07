@@ -5,9 +5,9 @@ import torch
 from typing import OrderedDict
 import math
 
-class DCGenerator(BaseGenerator):
+class WGenerator(BaseGenerator):
     def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
-        super(DCGenerator, self).__init__()
+        super(WGenerator, self).__init__()
 
         self.latent_dimension = latent_dimension
         self.image_shape = image_shape
@@ -27,7 +27,7 @@ class DCGenerator(BaseGenerator):
 
         temp_layers = [
             nn.ConvTranspose2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=1,padding=0, bias=False),
-            nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 2)), conv_dimension * multiplier, affine=True),
+            nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
             nn.ReLU()
         ]
 
@@ -35,7 +35,7 @@ class DCGenerator(BaseGenerator):
             multiplier = int(multiplier // 2)
             temp_layers+=[
                 nn.ConvTranspose2d(conv_dimension * (multiplier * 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=True),
-                nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 2)), conv_dimension * multiplier, affine=True),
+                nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
                 nn.ReLU()
             ]
 
@@ -61,7 +61,9 @@ class DCGenerator(BaseGenerator):
         return self.layers(final_latent_vector)
     
     def forward_without_embedding(self, latent_vector: torch.tensor, embedding_vector: torch.tensor):
-        final_latent_vector = torch.cat([latent_vector, embedding_vector], dim=1)
+        final_latent_vector = latent_vector
+        if self.conditional:
+            final_latent_vector = torch.cat([latent_vector, embedding_vector], dim=1)
         return self.layers(final_latent_vector)
     
     def load_model_state(self, model_state):
@@ -94,9 +96,9 @@ class DCGenerator(BaseGenerator):
             for param in self.layers[index].parameters():
                 param.requires_grad_(state)
     
-class DCDiscriminator(BaseDiscriminator):
+class WDiscriminator(BaseDiscriminator):
     def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
-        super(DCDiscriminator, self).__init__()
+        super(WDiscriminator, self).__init__()
         self.image_shape = image_shape
         self.conv_dimension = conv_dimension
         self.used_layers = used_layers
@@ -114,7 +116,7 @@ class DCDiscriminator(BaseDiscriminator):
 
         temp_layers = [
             torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
-            nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 2)), conv_dimension * multiplier, affine = True),
+            nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
             nn.LeakyReLU(0.2),
         ]
 
@@ -122,29 +124,36 @@ class DCDiscriminator(BaseDiscriminator):
             multiplier = multiplier * 2
             temp_layers+=[
                 torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * int(multiplier // 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False)),
-                nn.GroupNorm(int(math.ceil((conv_dimension * multiplier) / 2)), conv_dimension * multiplier, affine=True),
+                nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
                 nn.LeakyReLU(0.2),
             ]
 
         temp_layers+=[
-            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * multiplier, 1, kernel_size=2, stride=1,padding=0, bias=False)),
-            #nn.Sigmoid()
+            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * multiplier, 1, kernel_size=2, stride=1,padding=0, bias=False))
         ]
 
         self.layers = nn.Sequential(*temp_layers)
 
         self.apply(init_weight)
 
+    def generate_embedding(self, labels: torch.tensor):
+        return self.label_embedding(labels).view(labels.size(0), 1, self.image_shape[1], self.image_shape[2])
+
     def forward(self, image_tensor: torch.tensor, labels: torch.tensor = None):
         final_image_tensor = image_tensor
         if self.conditional:
-            embedded_labels = self.label_embedding(labels)
-            label_channel = embedded_labels.view(image_tensor.size(0), 1, self.image_shape[1], self.image_shape[2])
-            final_image_tensor = torch.cat([image_tensor,label_channel], dim=1)
+            embedded_labels = self.generate_embedding(labels)
+            final_image_tensor = torch.cat([image_tensor,embedded_labels], dim=1)
 
         score = self.layers(final_image_tensor)
         return score.view(image_tensor.shape[0],1)
     
+    def forward_without_embedding(self, latent_vector: torch.tensor, embedding_vector: torch.tensor):
+        final_latent_vector = latent_vector
+        if self.conditional:
+            final_latent_vector = torch.cat([latent_vector, embedding_vector], dim=1)
+        return self.layers(final_latent_vector)
+
     def load_model_state(self, model_state):
         new_state = OrderedDict()
         kept_layers = 0
