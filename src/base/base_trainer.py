@@ -217,12 +217,6 @@ class BaseTrainer(ABC):
 
         self.train(**train_args)
 
-    def _log_gpu_memory(self, stage: str):
-        if self.device == "cuda":
-            allocated_memory_mb = torch.cuda.memory_allocated(self.device) / (1024 * 1024)
-            reserved_memory_mb = torch.cuda.memory_reserved(self.device) / (1024 * 1024)
-            logger.Info(f'GPU Memory at stage "{stage}": Allocated {allocated_memory_mb:.2f} MB, Reserved {reserved_memory_mb:.2f} MB')
-
     def train(
         self,
         name: str,
@@ -331,8 +325,6 @@ class BaseTrainer(ABC):
         logger.Info(f"  Device: {self.device}")
         logger.Info(f"  Workers: {training_config.num_data_workers}")
         
-
-        self._log_gpu_memory("TrainingStart")
         discriminator_steps_taken = 0
         generator_steps_taken = 0
         for epoch in range(start_epoch, training_config.epochs + 1):
@@ -347,8 +339,6 @@ class BaseTrainer(ABC):
                     logger.Info(f"Thawed the first {discriminator_freeze_layers} discriminator layers")
                     discriminator_freeze_layers = 0
 
-            self._log_gpu_memory(f"Epoch{epoch}Start")
-
             generator_epoch_loss_history = {}
             discriminator_epoch_loss_history = {}
 
@@ -358,9 +348,6 @@ class BaseTrainer(ABC):
 
                 for discriminator_iterations in range(0, training_config.discriminator_repeats):
                     discriminator_steps_taken+=1
-
-                    self._log_gpu_memory(f"StopPoint")
-                    continue
                     
                     fake_latent_vector = self.generator.generate_latents(self.training_config.batch_size, device=self.device)
                     fake_labels = self.generator.generate_labels(self.training_config.batch_size, device=self.device).detach() if self.conditional else None
@@ -391,8 +378,6 @@ class BaseTrainer(ABC):
 
             self.generator_scheduler.step()
             self.discriminator_scheduler.step()
-
-            self._log_gpu_memory(f"Epoch{epoch}End")
 
             self.generator.eval()
             self.discriminator.eval()

@@ -37,7 +37,7 @@ class DCGanTrainer(BaseTrainer):
             self.generator_optimizer.step()
             self.generator_optimizer.zero_grad(set_to_none=True)
 
-        return {"Generator Loss": generator_loss.item()}
+        return {"Generator Loss": generator_loss.detach().item()}
 
     def _train_discriminator_iteration(self, real_images: torch.tensor, fake_images: torch.tensor, zero_grad: bool, epoch: int, real_labels: torch.tensor = None, fake_labels: torch.tensor = None):
         valid = torch.clamp(self.valid_base + 0.1 * torch.randn_like(self.valid_base, device=self.device), 0, 1)
@@ -58,4 +58,4 @@ class DCGanTrainer(BaseTrainer):
             self.discriminator_optimizer.step()
             self.discriminator_optimizer.zero_grad(set_to_none=True)
 
-        return {"Discriminator Loss": discriminator_loss.item(), "Discriminator Real Loss": real_loss.item(), "Discriminator Fake Loss": fake_loss.item(), "Discriminator Real Prediction": real_prediction.mean().item(), "Discriminator Fake Prediction": fake_prediction.mean().item()}
+        return {"Discriminator Loss": discriminator_loss.detach().item(), "Discriminator Real Loss": real_loss.detach().item(), "Discriminator Fake Loss": fake_loss.detach().item(), "Discriminator Real Prediction": real_prediction.mean().detach().item(), "Discriminator Fake Prediction": fake_prediction.mean().detach().item()}
