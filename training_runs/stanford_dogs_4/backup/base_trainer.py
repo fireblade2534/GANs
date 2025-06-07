@@ -358,6 +358,9 @@ class BaseTrainer(ABC):
 
                 for discriminator_iterations in range(0, training_config.discriminator_repeats):
                     discriminator_steps_taken+=1
+
+                    self._log_gpu_memory(f"StopPoint")
+                    continue
                     
                     fake_latent_vector = self.generator.generate_latents(self.training_config.batch_size, device=self.device)
                     fake_labels = self.generator.generate_labels(self.training_config.batch_size, device=self.device).detach() if self.conditional else None
