@@ -2,9 +2,9 @@ name: stanford_dogs_64x64_4
 save_path: training_runs/stanford_dogs_4
 training_config:
   seed: 42
-  generator_learning_rate: 9.0e-05
-  discriminator_learning_rate: 9.0e-05
-  batch_size: 32
+  generator_learning_rate: 2.0e-05
+  discriminator_learning_rate: 2.0e-05
+  batch_size: 128
   epochs: 200
   b1: 0.0
   b2: 0.99
@@ -26,8 +26,8 @@ training_config:
       ending_noise: 0
       ending_epoch: 20
   gradient_penalty_weight: 10
-  discriminator_repeats: 4
-  gradient_accumulation_steps: 2
+  discriminator_repeats: 5
+  gradient_accumulation_steps: 1
   num_labels: 120
 dataset:
   args:

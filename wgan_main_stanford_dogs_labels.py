@@ -30,17 +30,17 @@ generator = WGenerator(latent_dimension=128, used_layers=4, total_layers=6, imag
 discriminator = WDiscriminator(used_layers=4, total_layers=6, image_shape=img_shape, conv_dimension=96, num_labels=120)
 
 training_config = TrainingConfig(
-    generator_learning_rate=0.00009,
-    discriminator_learning_rate=0.00009,
+    generator_learning_rate=0.00002,
+    discriminator_learning_rate=0.00002,
     b1=0.0,
     b2=0.99,
-    batch_size=32,
+    batch_size=128,
     epochs=200,
     sample_epochs=2,
     save_epochs=4,
-    discriminator_repeats=4,
+    discriminator_repeats=5,
     gradient_penalty_weight=10,
-    gradient_accumulation_steps=2,
+    gradient_accumulation_steps=1,
     stablization_epochs=2,
     num_data_workers=16,
     num_labels=120,
@@ -60,4 +60,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = WGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("stanford_dogs_64x64_4", "training_runs/stanford_dogs_4", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/stanford_dogs_4/checkpoints/stanford_dogs_64x64_3_40_model.pt")
+trainer.train("stanford_dogs_64x64_4", "training_runs/stanford_dogs_4", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/stanford_dogs_4/checkpoints/stanford_dogs_64x64_4_72_model.pt")

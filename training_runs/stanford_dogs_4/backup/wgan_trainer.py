@@ -35,7 +35,7 @@ class WGanTrainer(BaseTrainer):
             self.generator_optimizer.step()
             self.generator_optimizer.zero_grad(set_to_none=True)
 
-        return {"Generator Loss": generator_loss.detach()}
+        return {"Generator Loss": generator_loss.detach().item()}
     
     def _compute_gp(self, real_images: torch.tensor, real_labels: torch.tensor, fake_images: torch.tensor, fake_labels: torch.tensor):
         batch_size = self.training_config.batch_size
@@ -89,4 +89,4 @@ class WGanTrainer(BaseTrainer):
             self.discriminator_optimizer.step()
             self.discriminator_optimizer.zero_grad(set_to_none=True)
 
-        return {"Discriminator Loss": discriminator_loss.detach(), "Discriminator Real Prediction": real_prediction.mean().detach(), "Discriminator Fake Prediction": fake_prediction.mean().detach(), "Discriminator Gradient": gradient.detach()}
+        return {"Discriminator Loss": discriminator_loss.detach().item(), "Discriminator Real Prediction": real_prediction.mean().detach().item(), "Discriminator Fake Prediction": fake_prediction.mean().detach().item(), "Discriminator Gradient": gradient.detach()}
