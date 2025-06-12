@@ -318,7 +318,7 @@ class BaseTrainer(ABC):
 
         test_latents = self.generator.generate_latents((test_images), device=self.device)
         if self.conditional:
-            test_labels = torch.arange(0, self.training_config.num_labels, device=self.device).repeat(test_images // self.training_config.num_labels + 1)[:test_images].detach()
+            test_labels = self.generator.generate_labels((test_images), device=self.device)
         else:
             test_labels = None
 
@@ -353,7 +353,6 @@ class BaseTrainer(ABC):
 
             for batch_index, (real_images, real_labels) in enumerate(tqdm.tqdm(dataloader, unit="batch")):
                 torch.compiler.cudagraph_mark_step_begin()
-                print(real_labels.shape)
 
                 for discriminator_iterations in range(0, training_config.discriminator_repeats):
                     discriminator_steps_taken+=1

@@ -10,6 +10,10 @@ class BaseGenerator(nn.Module, ABC):
     @abstractmethod
     def generate_latents(self, batch_size: int, device: str) -> torch.tensor:
         raise NotImplementedError("Subclasses must implement the generate_latents method")
+    
+    @abstractmethod
+    def generate_labels(self, batch_size: int, device: str) -> torch.tensor:
+        raise NotImplementedError("Subclasses must implement the generate_labels method")
 
     @abstractmethod
     def load_model_state(self, model_state):

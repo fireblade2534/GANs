@@ -20,14 +20,14 @@ class WGenerator(BaseGenerator):
 
         input_dimension = self.latent_dimension
         if self.conditional:
-            self.label_embedding = nn.Embedding(self.num_labels, latent_dimension)
+            self.label_embedding = nn.Linear(self.num_labels, latent_dimension)
             input_dimension *= 2
 
         multiplier = 2 ** total_layers
 
         temp_layers = [
             nn.ConvTranspose2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=1,padding=0, bias=False),
-            nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
+            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
             nn.ReLU()
         ]
 
@@ -35,7 +35,7 @@ class WGenerator(BaseGenerator):
             multiplier = int(multiplier // 2)
             temp_layers+=[
                 nn.ConvTranspose2d(conv_dimension * (multiplier * 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=True),
-                nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
+                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
                 nn.ReLU()
             ]
 
@@ -49,7 +49,7 @@ class WGenerator(BaseGenerator):
         self.apply(init_weight)
 
     def generate_embedding(self, labels: torch.tensor):
-        return self.label_embedding(labels).unsqueeze(-1).unsqueeze(-1)
+        return self.label_embedding(labels.float()).unsqueeze(-1).unsqueeze(-1)
 
     def forward(self, latent_vector: torch.tensor, labels: torch.tensor = None):
         final_latent_vector = latent_vector
@@ -88,7 +88,7 @@ class WGenerator(BaseGenerator):
         return torch.randn((batch_size, self.latent_dimension, 1, 1), device=device, dtype=torch.float32)
     
     def generate_labels(self, batch_size: int, device: str) -> torch.tensor:
-        return torch.randint(0, 1, size=(batch_size, self.num_labels), device=device)
+        return torch.randint(0, 2, size=(batch_size,self.num_labels,), device=device)
 
     @torch.no_grad()
     def requires_gradients(self, layer_numbers: int, state: bool):
@@ -109,14 +109,14 @@ class WDiscriminator(BaseDiscriminator):
 
         input_dimension = self.image_shape[0]
         if self.conditional:
-            self.label_embedding = nn.Embedding(self.num_labels, self.image_shape[1] * self.image_shape[2])
+            self.label_embedding = nn.Linear(self.num_labels, self.image_shape[1] * self.image_shape[2])
             input_dimension +=1
 
         multiplier = 1
 
         temp_layers = [
             torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
-            nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
+            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
             nn.LeakyReLU(0.2),
         ]
 
@@ -124,7 +124,7 @@ class WDiscriminator(BaseDiscriminator):
             multiplier = multiplier * 2
             temp_layers+=[
                 torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * int(multiplier // 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False)),
-                nn.GroupNorm(1, conv_dimension * multiplier, affine = True),
+                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
                 nn.LeakyReLU(0.2),
             ]
 
@@ -137,7 +137,7 @@ class WDiscriminator(BaseDiscriminator):
         self.apply(init_weight)
 
     def generate_embedding(self, labels: torch.tensor):
-        return self.label_embedding(labels).view(labels.size(0), 1, self.image_shape[1], self.image_shape[2])
+        return self.label_embedding(labels.float()).view(labels.size(0), 1, self.image_shape[1], self.image_shape[2])
 
     def forward(self, image_tensor: torch.tensor, labels: torch.tensor = None):
         final_image_tensor = image_tensor

@@ -18,7 +18,6 @@ img_shape = (img_channels, img_size, img_size)
 
 image_transform = transforms.Compose(
     [  # transforms.Resize(img_size), # Resize is only for PIL Image. Not for numpy array
-        transforms.Grayscale(num_output_channels=3),
         transforms.ToTensor(),  # ToTensor() : np.array (H, W, C) -> tensor (C, H, W)
         transforms.Resize((img_size, img_size), antialias=True),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5], inplace=True),
@@ -56,12 +55,12 @@ training_config = TrainingConfig(
 )
 
 
-generator_optimizer = torch.optim.RMSprop(generator.parameters(), lr=training_config.generator_learning_rate, weight_decay=0.001)
-discriminator_optimizer = torch.optim.RMSprop(discriminator.parameters(), lr=training_config.discriminator_learning_rate, weight_decay=0.001)
+generator_optimizer = torch.optim.Adam(generator.parameters(), lr=training_config.generator_learning_rate, betas=(training_config.b1, training_config.b2))
+discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=training_config.discriminator_learning_rate, betas=(training_config.b1, training_config.b2))
 
 generator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(generator_optimizer, T_max=training_config.epochs, eta_min=training_config.generator_learning_rate*0.001)
 discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=training_config.epochs, eta_min=training_config.discriminator_learning_rate*0.001)
 
 trainer = WGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("celeb_a_64x64_1", "training_runs/celeb_a_1", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/mnist_5/checkpoints/mnist_32x32_5_4_model.pt")
+trainer.train("celeb_a_64x64_1", "training_runs/celeb_a_1", training_config, trainset, override_resume_options=False, resume_path="training_runs/celeb_a_1/checkpoints/celeb_a_64x64_1_6_model.pt")

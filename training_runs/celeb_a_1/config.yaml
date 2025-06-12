@@ -34,9 +34,6 @@ dataset:
     root: /home/fireblade2534/Datasets/Images
     split: train
     transform:
-    - type: Greyscale
-      args:
-        num_output_channels: 3
     - type: ToTensor
       args: {}
     - type: Resize
@@ -59,5 +56,5 @@ dataset:
         - 0.5
         inplace: true
   type: CELEBA
-resume_path: null
+resume_path: training_runs/celeb_a_1/checkpoints/celeb_a_64x64_1_6_model.pt
 override_resume_options: false

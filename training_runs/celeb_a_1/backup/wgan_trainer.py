@@ -1,7 +1,7 @@
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
-from torch import autograd
+from torch import autograd, embedding
 
 from src.base.base_trainer import BaseTrainer
 from src.logging import *
@@ -49,7 +49,8 @@ class WGanTrainer(BaseTrainer):
             real_embeddings = self.discriminator.generate_embedding(real_labels)
             fake_embeddings = self.discriminator.generate_embedding(fake_labels)
 
-            embedding_interpolation = (eps * real_embeddings + (1 - eps) * fake_embeddings)
+            #embedding_interpolation = (eps * real_embeddings + (1 - eps) * fake_embeddings)
+            embedding_interpolation = real_embeddings.detach()
             embedding_interpolation.requires_grad_(True)
 
             interp_logits = self.discriminator.forward_without_embedding(image_interpolation, embedding_interpolation)
