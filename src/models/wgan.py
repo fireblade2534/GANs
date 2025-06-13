@@ -6,7 +6,7 @@ from typing import OrderedDict
 import math
 
 class WGenerator(BaseGenerator):
-    def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
+    def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0, one_hot_labels: bool = True):
         super(WGenerator, self).__init__()
 
         self.latent_dimension = latent_dimension
@@ -17,17 +17,18 @@ class WGenerator(BaseGenerator):
 
         self.num_labels = num_labels
         self.conditional = num_labels > 0
+        self.one_hot_labels = one_hot_labels
 
         input_dimension = self.latent_dimension
         if self.conditional:
-            self.label_embedding = nn.Linear(self.num_labels, latent_dimension)
+            self.label_embedding = nn.Sequential(nn.Linear(1 if self.one_hot_labels else self.num_labels, latent_dimension * 2), nn.Linear(latent_dimension * 2, latent_dimension))
             input_dimension *= 2
 
         multiplier = 2 ** total_layers
 
         temp_layers = [
             nn.ConvTranspose2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=1,padding=0, bias=False),
-            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
+            nn.BatchNorm2d(conv_dimension * multiplier),
             nn.ReLU()
         ]
 
@@ -35,7 +36,7 @@ class WGenerator(BaseGenerator):
             multiplier = int(multiplier // 2)
             temp_layers+=[
                 nn.ConvTranspose2d(conv_dimension * (multiplier * 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=True),
-                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
+                nn.BatchNorm2d(conv_dimension * multiplier),
                 nn.ReLU()
             ]
 
@@ -88,6 +89,8 @@ class WGenerator(BaseGenerator):
         return torch.randn((batch_size, self.latent_dimension, 1, 1), device=device, dtype=torch.float32)
     
     def generate_labels(self, batch_size: int, device: str) -> torch.tensor:
+        if self.one_hot_labels:
+            return torch.randint(0, self.num_labels, size=(batch_size,), device=device)
         return torch.randint(0, 2, size=(batch_size,self.num_labels,), device=device)
 
     @torch.no_grad()
@@ -97,7 +100,7 @@ class WGenerator(BaseGenerator):
                 param.requires_grad_(state)
     
 class WDiscriminator(BaseDiscriminator):
-    def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
+    def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0, one_hot_labels: bool = True):
         super(WDiscriminator, self).__init__()
         self.image_shape = image_shape
         self.conv_dimension = conv_dimension
@@ -106,17 +109,18 @@ class WDiscriminator(BaseDiscriminator):
 
         self.num_labels = num_labels
         self.conditional = num_labels > 0
+        self.one_hot_labels = one_hot_labels
 
         input_dimension = self.image_shape[0]
         if self.conditional:
-            self.label_embedding = nn.Linear(self.num_labels, self.image_shape[1] * self.image_shape[2])
+            self.label_embedding = nn.Sequential(nn.Linear(1 if self.one_hot_labels else self.num_labels, self.num_labels * 2), nn.Linear(self.num_labels * 2, self.image_shape[1] * self.image_shape[2]))
             input_dimension +=1
 
         multiplier = 1
 
         temp_layers = [
-            torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False)),
-            nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
+            nn.Conv2d(input_dimension, conv_dimension * multiplier, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(conv_dimension * multiplier),
             nn.LeakyReLU(0.2),
         ]
 
@@ -124,7 +128,7 @@ class WDiscriminator(BaseDiscriminator):
             multiplier = multiplier * 2
             temp_layers+=[
                 torch.nn.utils.parametrizations.spectral_norm(nn.Conv2d(conv_dimension * int(multiplier // 2), conv_dimension * multiplier, kernel_size=4, stride=2,padding=1, bias=False)),
-                nn.GroupNorm(conv_dimension * multiplier, conv_dimension * multiplier, affine = True),
+                nn.BatchNorm2d(conv_dimension * multiplier),
                 nn.LeakyReLU(0.2),
             ]
 

@@ -29,8 +29,8 @@ temp._check_integrity = lambda x : True
 
 trainset = temp(root="~/Datasets/Images", download=False, target_type="attr", transform=image_transform)
 
-generator = WGenerator(latent_dimension=100, used_layers=4, total_layers=4, image_shape=img_shape, conv_dimension=32, num_labels=40)
-discriminator = WDiscriminator(used_layers=4, total_layers=4, image_shape=img_shape, conv_dimension=32, num_labels=40)
+generator = WGenerator(latent_dimension=100, used_layers=4, total_layers=4, image_shape=img_shape, conv_dimension=32, num_labels=40, one_hot_labels=False)
+discriminator = WDiscriminator(used_layers=4, total_layers=4, image_shape=img_shape, conv_dimension=32, num_labels=40, one_hot_labels=False)
 
 training_config = TrainingConfig(
     generator_learning_rate=0.00005,
@@ -63,4 +63,4 @@ discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminat
 
 trainer = WGanTrainer(generator, discriminator, generator_optimizer=generator_optimizer, discriminator_optimizer=discriminator_optimizer, generator_scheduler=generator_scheduler, discriminator_scheduler=discriminator_scheduler, device=device)
 
-trainer.train("celeb_a_64x64_1", "training_runs/celeb_a_1", training_config, trainset, override_resume_options=False, resume_path="training_runs/celeb_a_1/checkpoints/celeb_a_64x64_1_6_model.pt")
+trainer.train("celeb_a_64x64_1", "training_runs/celeb_a_1", training_config, trainset, override_resume_options=False)#, resume_path="training_runs/celeb_a_1/checkpoints/celeb_a_64x64_1_6_model.pt")

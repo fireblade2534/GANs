@@ -6,7 +6,7 @@ from typing import OrderedDict
 import math
 
 class DCGenerator(BaseGenerator):
-    def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
+    def __init__(self, latent_dimension: int, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0, one_hot_labels: bool = True):
         super(DCGenerator, self).__init__()
 
         self.latent_dimension = latent_dimension
@@ -17,10 +17,11 @@ class DCGenerator(BaseGenerator):
 
         self.num_labels = num_labels
         self.conditional = num_labels > 0
+        self.one_hot_labels = one_hot_labels
 
         input_dimension = self.latent_dimension
         if self.conditional:
-            self.label_embedding = nn.Embedding(self.num_labels, latent_dimension)
+            self.label_embedding = nn.Sequential(nn.Linear(1 if self.one_hot_labels else self.num_labels, latent_dimension * 2), nn.Linear(latent_dimension * 2, latent_dimension))
             input_dimension *= 2
 
         multiplier = 2 ** total_layers
@@ -49,19 +50,21 @@ class DCGenerator(BaseGenerator):
         self.apply(init_weight)
 
     def generate_embedding(self, labels: torch.tensor):
-        return self.label_embedding(labels).unsqueeze(-1).unsqueeze(-1)
+        return self.label_embedding(labels.float()).view(labels.size(0), 1, self.image_shape[1], self.image_shape[2])
 
-    def forward(self, latent_vector: torch.tensor, labels: torch.tensor = None):
-        final_latent_vector = latent_vector
+    def forward(self, image_tensor: torch.tensor, labels: torch.tensor = None):
+        final_image_tensor = image_tensor
         if self.conditional:
             embedded_labels = self.generate_embedding(labels)
+            final_image_tensor = torch.cat([image_tensor,embedded_labels], dim=1)
 
-            final_latent_vector = torch.cat([latent_vector, embedded_labels], dim=1)
-
-        return self.layers(final_latent_vector)
+        score = self.layers(final_image_tensor)
+        return score.view(image_tensor.shape[0],1)
     
     def forward_without_embedding(self, latent_vector: torch.tensor, embedding_vector: torch.tensor):
-        final_latent_vector = torch.cat([latent_vector, embedding_vector], dim=1)
+        final_latent_vector = latent_vector
+        if self.conditional:
+            final_latent_vector = torch.cat([latent_vector, embedding_vector], dim=1)
         return self.layers(final_latent_vector)
     
     def load_model_state(self, model_state):
@@ -86,6 +89,8 @@ class DCGenerator(BaseGenerator):
         return torch.randn((batch_size, self.latent_dimension, 1, 1), device=device, dtype=torch.float32)
     
     def generate_labels(self, batch_size: int, device: str) -> torch.tensor:
+        if self.one_hot_labels:
+            return torch.randint(0, self.num_labels, size=(batch_size,), device=device)
         return torch.randint(0, self.num_labels, size=(batch_size,), device=device)
 
     @torch.no_grad()
@@ -95,7 +100,7 @@ class DCGenerator(BaseGenerator):
                 param.requires_grad_(state)
     
 class DCDiscriminator(BaseDiscriminator):
-    def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0):
+    def __init__(self, image_shape: tuple, used_layers: int, total_layers: int, conv_dimension: int = 48, num_labels: int = 0, one_hot_labels: bool = True):
         super(DCDiscriminator, self).__init__()
         self.image_shape = image_shape
         self.conv_dimension = conv_dimension
@@ -104,10 +109,11 @@ class DCDiscriminator(BaseDiscriminator):
 
         self.num_labels = num_labels
         self.conditional = num_labels > 0
+        self.one_hot_labels = one_hot_labels
 
         input_dimension = self.image_shape[0]
         if self.conditional:
-            self.label_embedding = nn.Embedding(self.num_labels, self.image_shape[1] * self.image_shape[2])
+            self.label_embedding = nn.Sequential(nn.Linear(1 if self.one_hot_labels else self.num_labels, self.num_labels * 2), nn.Linear(self.num_labels * 2, self.image_shape[1] * self.image_shape[2]))
             input_dimension +=1
 
         multiplier = 1

@@ -56,5 +56,5 @@ dataset:
         - 0.5
         inplace: true
   type: CELEBA
-resume_path: training_runs/celeb_a_1/checkpoints/celeb_a_64x64_1_6_model.pt
+resume_path: null
 override_resume_options: false
